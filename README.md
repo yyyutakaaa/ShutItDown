@@ -14,7 +14,7 @@ ShutItDown is a sleek, user-friendly desktop app that allows you to instantly sh
 
 First, clone the repository:
 ```bash
-git clone https://github.com/your-username/ShutItDown.git
+git clone https://github.com/yyyutakaaa/ShutItDown.git
 cd ShutItDown
 ```
 
@@ -48,8 +48,7 @@ Use this app only in a trusted environment. Never enable port forwarding without
 Feel free to open an issue or submit improvements through pull requests!
 
 ## 📸 Screenshots
-Include screenshots of your app in action here.
-
+![Screenshot](assets/thumbnail.png)
 ---
 
 ### 🚧 Future Enhancements
