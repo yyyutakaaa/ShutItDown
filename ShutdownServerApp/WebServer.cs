@@ -1,5 +1,3 @@
-#nullable disable
-
 using System;
 using System.Diagnostics;
 using System.Net;
@@ -29,7 +27,6 @@ namespace ShutdownServerApp
                     webBuilder.UseUrls("http://0.0.0.0:5050");
                     webBuilder.Configure(app =>
                     {
-                        // Gebruik routing en endpoints voor de minimal API
                         app.UseRouting();
                         app.UseEndpoints(endpoints =>
                         {
@@ -69,7 +66,7 @@ namespace ShutdownServerApp
                 });
             _host = builder.Build();
 
-            // Start de webserver op de achtergrond
+            // RunAsync wordt gestart op de achtergrond
             _ = Task.Run(async () =>
             {
                 try
@@ -78,7 +75,7 @@ namespace ShutdownServerApp
                 }
                 catch (OperationCanceledException)
                 {
-                    // Dit is verwacht bij annulering
+                    // Verwacht bij annulering
                 }
             });
         }

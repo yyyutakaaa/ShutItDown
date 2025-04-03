@@ -8,6 +8,9 @@ namespace ShutdownServerApp
         [STAThread]
         static void Main()
         {
+            // Als ApplicationConfiguration.Initialize() fouten geeft, vervang dan met:
+            // Application.EnableVisualStyles();
+            // Application.SetCompatibleTextRenderingDefault(false);
             ApplicationConfiguration.Initialize();
             Application.Run(new MainForm());
         }
