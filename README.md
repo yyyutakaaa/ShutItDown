@@ -1,60 +1,60 @@
 # 🔥 ShutItDown
 
-ShutItDown is een strakke, gebruiksvriendelijke desktop-app waarmee je jouw Windows-pc direct kan afsluiten via je telefoon of andere apparaten op hetzelfde netwerk. Met een moderne interface, handige systeemtray-integratie en zero-config gebruik, is je pc uitschakelen nog nooit zo makkelijk geweest.
+ShutItDown is a sleek, user-friendly desktop app that allows you to instantly shut down your Windows PC remotely using your phone or any other device on the same network. Featuring a modern interface, convenient system tray integration, and zero-configuration setup, turning off your PC has never been easier.
 
-## ✨ Belangrijkste Features
-- **Moderne UI**: Fris, strak en gebruiksvriendelijk ontwerp gemaakt met CustomTkinter.
-- **Remote Shutdown**: Zet je pc uit vanaf je gsm of tablet via één simpele link.
-- **Systeemtray Integratie**: Minimaliseer naar de taakbalk bij de klok om je scherm netjes te houden.
-- **Flask Webserver**: Betrouwbare lokale server die op je netwerk draait, geen cloud nodig!
+## ✨ Key Features
+- **Modern UI**: Clean, intuitive, and visually appealing interface created using CustomTkinter.
+- **Remote Shutdown**: Turn off your PC from your phone or tablet using a simple URL.
+- **System Tray Integration**: Minimize the app to the system tray to keep your workspace clean.
+- **Flask Webserver**: Reliable local server running securely on your network, no cloud required.
 
-## 🚀 Hoe gebruik je het?
+## 🚀 How to Use
 
-### Installatie
+### Installation
 
-Clone eerst de repository:
+First, clone the repository:
 ```bash
-git clone https://github.com/jouw-gebruikersnaam/ShutItDown.git
+git clone https://github.com/your-username/ShutItDown.git
 cd ShutItDown
 ```
 
-Installeer vervolgens alle benodigde pakketten:
+Next, install all required dependencies:
 ```bash
 pip install -r requirements.txt
 ```
 
-Start daarna de app:
+Finally, start the app:
 ```bash
 python Shutdown.py
 ```
 
-### 📱 Shutdown vanaf je gsm
+### 📱 Shutdown from Your Phone
 
-Zorg ervoor dat je gsm of ander toestel op hetzelfde Wi-Fi netwerk zit als je pc, open dan je browser en surf naar:
+Ensure your phone or other device is connected to the same Wi-Fi network as your PC, then open your browser and navigate to:
 ```
-http://[ip-adres-van-je-pc]:5050/shutdown
+http://[your-pc-ip-address]:5050/shutdown
 ```
 
-Je pc schakelt onmiddellijk uit!
+Your PC will shut down immediately!
 
-## 🛠️ Vereisten
+## 🛠️ Requirements
 - Windows 10/11
-- Python 3.10 of hoger
+- Python 3.10 or higher
 
-## 🔒 Let op!
-Gebruik deze app alleen in een vertrouwde omgeving. Zet nooit port forwarding aan zonder beveiliging.
+## 🔒 Important Notice
+Use this app only in a trusted environment. Never enable port forwarding without proper security measures.
 
-## 💡 Suggesties of bijdragen?
-Voel je vrij om een issue aan te maken of verbeteringen via pull requests in te sturen!
+## 💡 Suggestions or Contributions?
+Feel free to open an issue or submit improvements through pull requests!
 
 ## 📸 Screenshots
-Voeg hier eventueel screenshots toe van je app in actie.
+Include screenshots of your app in action here.
 
 ---
 
-### 🚧 Toekomstige uitbreidingen
-- Toevoegen van beveiliging via geheime code of wachtwoord.
-- Uitbreiding met reboot en sleep-functies.
+### 🚧 Future Enhancements
+- Security improvements with secret codes or passwords.
+- Additional functionalities like reboot and sleep modes.
 
-Veel plezier met ShutItDown! ✌️
+Enjoy using ShutItDown! ✌️
 
