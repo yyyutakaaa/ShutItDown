@@ -1,59 +1,42 @@
-# 🔥 ShutItDown
+### 🚀 How to Upload and Share Your Ready-to-Use EXE via GitHub Releases
 
-ShutItDown is a sleek, user-friendly desktop app that allows you to instantly shut down your Windows PC remotely using your phone or any other device on the same network. Featuring a modern interface, convenient system tray integration, and zero-configuration setup, turning off your PC has never been easier.
+To ensure others can easily download and use your executable (EXE) directly, follow these straightforward and detailed steps:
 
-## ✨ Key Features
-- **Modern UI**: Clean, intuitive, and visually appealing interface created using CustomTkinter.
-- **Remote Shutdown**: Turn off your PC from your phone or tablet using a simple URL.
-- **System Tray Integration**: Minimize the app to the system tray to keep your workspace clean.
-- **Flask Webserver**: Reliable local server running securely on your network, no cloud required.
+## 📦 Step-by-Step Guide:
 
-## 🚀 How to Use
+### 1. Create a Release on GitHub:
 
-### Installation
+- Navigate to your GitHub repository.
+- Click on the **"Releases"** tab located on the right-hand side.
+- Click on **"Draft a new release"**.
 
-First, clone the repository:
-```bash
-git clone https://github.com/yyyutakaaa/ShutItDown.git
-cd ShutItDown
-```
+### 2. Configure Your Release:
 
-Next, install all required dependencies:
-```bash
-pip install -r requirements.txt
-```
+- Enter a version number in the **"Tag version"** field, such as `v1.0`.
+- Provide a clear and descriptive title, e.g., "Shutdown Server v1.0".
+- Write a brief description in the text area to inform users about what your application does, its main features, and any relevant instructions or system requirements.
 
-Finally, start the app:
-```bash
-python Shutdown.py
-```
+### 3. Upload Your EXE File:
 
-### 📱 Shutdown from Your Phone
+- Locate the generated EXE file (`ShutdownServerApp.exe`) on your computer, typically found in the publishing directory (`bin\Release\net6.0-windows\win-x64\publish\`).
+- Drag and drop this EXE file into the upload box under the **"Assets"** section.
 
-Ensure your phone or other device is connected to the same Wi-Fi network as your PC, then open your browser and navigate to:
-```
-http://[your-pc-ip-address]:5050/shutdown
-```
+### 4. Finalize Your Release:
 
-Your PC will shut down immediately!
+- Once you have completed all the above steps and ensured your description and assets are correct, click **"Publish release"** at the bottom of the page.
 
-## 🛠️ Requirements
-- Windows 10/11
-- Python 3.10 or higher
+### 5. Share the Direct Download Link:
 
-## 🔒 Important Notice
-Use this app only in a trusted environment. Never enable port forwarding without proper security measures.
+- After publishing your release, your uploaded EXE file will appear under "Assets".
+- Right-click the EXE file link and select **"Copy link address"**.
+- Share this direct download URL with your users, allowing them to easily download and immediately run your application.
 
-## 💡 Suggestions or Contributions?
-Feel free to open an issue or submit improvements through pull requests!
+Users will now be able to download your EXE and execute it directly without any additional installations required!
 
-## 📸 Screenshots
-![Screenshot](assets/thumbnail.png)
 ---
 
-### 🚧 Future Enhancements
-- Security improvements with secret codes or passwords.
-- Additional functionalities like reboot and sleep modes.
+### 🔗 Example Direct Download Link for Users:
 
-Enjoy using ShutItDown! ✌️
-
+```
+https://github.com/yyyutakaaa/ShutItDown/releases/tag/v1.1
+```
