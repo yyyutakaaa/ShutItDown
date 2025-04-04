@@ -45,18 +45,38 @@ namespace ShutdownServerApp
                                         {
                                             context.Response.ContentType = "text/html";
                                             string html =
-                                                "<html><head><title>Shutdown</title></head><body>";
-                                            html += "<form method='get' action='/shutdown'>";
-                                            html +=
-                                                "<input type='password' name='d1' maxlength='1' pattern='\\d' required>";
-                                            html +=
-                                                "<input type='password' name='d2' maxlength='1' pattern='\\d' required>";
-                                            html +=
-                                                "<input type='password' name='d3' maxlength='1' pattern='\\d' required>";
-                                            html +=
-                                                "<input type='password' name='d4' maxlength='1' pattern='\\d' required>";
-                                            html += "<input type='submit' value='Shutdown'>";
-                                            html += "</form></body></html>";
+                                                "<!DOCTYPE html>"
+                                                + "<html lang='en'>"
+                                                + "<head>"
+                                                + "  <meta charset='UTF-8'>"
+                                                + "  <meta name='viewport' content='width=device-width, initial-scale=1.0'>"
+                                                + "  <title>Shutdown</title>"
+                                                + "  <style>"
+                                                + "    body { font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; height: 100vh; }"
+                                                + "    .container { background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); text-align: center; width: 90%; max-width: 400px; }"
+                                                + "    h2 { margin-bottom: 20px; color: #333; }"
+                                                + "    .pin-container { display: flex; justify-content: center; }"
+                                                + "    .pin-input { width: 50px; padding: 10px; margin: 5px; font-size: 18px; text-align: center; border: 1px solid #ccc; border-radius: 4px; }"
+                                                + "    input[type='submit'] { padding: 10px 20px; font-size: 18px; background-color: #007BFF; color: #fff; border: none; border-radius: 4px; cursor: pointer; margin-top: 10px; }"
+                                                + "    input[type='submit']:hover { background-color: #0056b3; }"
+                                                + "  </style>"
+                                                + "</head>"
+                                                + "<body>"
+                                                + "  <div class='container'>"
+                                                + "    <h2>Enter your PIN</h2>"
+                                                + "    <form method='get' action='/shutdown'>"
+                                                + "      <div class='pin-container'>"
+                                                + "        <input class='pin-input' type='password' name='d1' maxlength='1' pattern='\\d' required>"
+                                                + "        <input class='pin-input' type='password' name='d2' maxlength='1' pattern='\\d' required>"
+                                                + "        <input class='pin-input' type='password' name='d3' maxlength='1' pattern='\\d' required>"
+                                                + "        <input class='pin-input' type='password' name='d4' maxlength='1' pattern='\\d' required>"
+                                                + "      </div>"
+                                                + "      <br>"
+                                                + "      <input type='submit' value='Shutdown'>"
+                                                + "    </form>"
+                                                + "  </div>"
+                                                + "</body>"
+                                                + "</html>";
                                             await context.Response.WriteAsync(html);
                                             return;
                                         }
@@ -85,6 +105,7 @@ namespace ShutdownServerApp
                                     await context.Response.WriteAsync("Shutdown initiated.");
                                 }
                             );
+
                             endpoints.MapGet(
                                 "/stop",
                                 async context =>

@@ -3,207 +3,219 @@ using System.Drawing;
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using Microsoft.Win32;
 
 namespace ShutdownServerApp
 {
     public class MainForm : Form
     {
-        private Panel headerPanel;
+        private GradientPanel headerPanel;
         private Label headerLabel;
-        private RoundedPanel cardPanel;
+        private PictureBox logoPictureBox;
+        private Label titleLabel;
+        private PictureBox statusPictureBox;
         private Label statusLabel;
-        private Button toggleServerButton;
+        private Button toggleButton;
         private Label linkLabel;
         private PictureBox copyPictureBox;
-        private Button setPinButton;
-        private RoundedPanel pinCardPanel;
+        private NotifyIcon trayIcon;
+        private Button togglePinButton;
         private TextBox pinTextBox1;
         private TextBox pinTextBox2;
         private TextBox pinTextBox3;
         private TextBox pinTextBox4;
         private Button confirmPinButton;
-        private NotifyIcon trayIcon;
-        private Timer fadeInTimer;
         private WebServer webServer;
-        private bool serverRunning = false;
-        private Color lightFormBack = Color.White;
-        private Color lightText = Color.Black;
-        private Color lightCardBack = Color.FromArgb(240, 240, 240);
-        private Color darkFormBack = Color.FromArgb(45, 45, 48);
-        private Color darkText = Color.White;
-        private Color darkCardBack = Color.FromArgb(30, 30, 30);
+        private bool _serverRunning = false;
+        private Image statusRunningIcon;
+        private Image statusStoppedIcon;
+        private ToolTip copyToolTip = new ToolTip();
+        private Timer fadeInTimer;
+        private Timer buttonAnimationTimer;
+        private double fadeInStep = 0.05;
+        private double buttonAnimProgress = 0.0;
+        private const double buttonAnimStep = 0.1;
+        private readonly Color buttonStartColor = Color.SlateBlue;
+        private readonly Color buttonHighlightColor = Color.MediumSlateBlue;
 
         public MainForm()
         {
+            BackColor = Color.FromArgb(45, 45, 48);
+            ForeColor = Color.White;
+            Text = "Shutdown Server";
+            Size = new Size(600, 400);
+            StartPosition = FormStartPosition.CenterScreen;
+            FormBorderStyle = FormBorderStyle.FixedSingle;
+            MaximizeBox = false;
             webServer = new WebServer();
-            this.Text = "Shutdown Server";
-            this.Size = new Size(600, 500);
-            this.StartPosition = FormStartPosition.CenterScreen;
-            this.FormBorderStyle = FormBorderStyle.FixedSingle;
-            this.MaximizeBox = false;
-            ApplyTheme();
+            this.Opacity = 0;
             InitializeComponents();
             this.Shown += MainForm_Shown;
             this.Load += async (s, e) =>
             {
+                await LoadLogoImageAsync();
                 await LoadCopyIconAsync();
+                await LoadStatusIconsAsync();
             };
-        }
-
-        private void ApplyTheme()
-        {
-            bool light = IsLightTheme();
-            this.BackColor = light ? lightFormBack : darkFormBack;
-            headerPanel.BackColor = light ? Color.LightSkyBlue : Color.MediumSlateBlue;
-            headerLabel.ForeColor = light ? lightText : darkText;
-        }
-
-        private bool IsLightTheme()
-        {
-            try
-            {
-                using (
-                    RegistryKey key = Registry.CurrentUser.OpenSubKey(
-                        @"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize"
-                    )
-                )
-                {
-                    if (key != null)
-                    {
-                        object theme = key.GetValue("AppsUseLightTheme");
-                        if (theme != null)
-                        {
-                            return ((int)theme) == 1;
-                        }
-                    }
-                }
-            }
-            catch { }
-            return true;
         }
 
         private void InitializeComponents()
         {
-            headerPanel = new Panel();
-            headerPanel.Size = new Size(this.Width, 80);
-            headerPanel.Location = new Point(0, 0);
-            headerPanel.BackColor = IsLightTheme() ? Color.LightSkyBlue : Color.MediumSlateBlue;
-            headerLabel = new Label();
-            headerLabel.Text = "🚀 Shutdown Server";
-            headerLabel.Font = new Font("Segoe UI", 24, FontStyle.Bold);
-            headerLabel.AutoSize = false;
-            headerLabel.TextAlign = ContentAlignment.MiddleCenter;
-            headerLabel.Dock = DockStyle.Fill;
-            headerLabel.ForeColor = IsLightTheme() ? lightText : darkText;
-            headerPanel.Controls.Add(headerLabel);
-            this.Controls.Add(headerPanel);
-            cardPanel = new RoundedPanel();
-            cardPanel.Size = new Size(500, 200);
-            cardPanel.Location = new Point(
-                (this.ClientSize.Width - cardPanel.Width) / 2,
-                headerPanel.Bottom + 20
-            );
-            cardPanel.BackColor = IsLightTheme() ? lightCardBack : darkCardBack;
-            statusLabel = new Label();
-            statusLabel.Text = "Status: Server is stopped";
-            statusLabel.Font = new Font("Segoe UI", 14, FontStyle.Bold);
-            statusLabel.AutoSize = true;
-            statusLabel.Location = new Point(20, 20);
-            statusLabel.ForeColor = IsLightTheme() ? lightText : darkText;
-            cardPanel.Controls.Add(statusLabel);
-            toggleServerButton = new Button();
-            toggleServerButton.Text = "Start Server";
-            toggleServerButton.Font = new Font("Segoe UI", 12, FontStyle.Bold);
-            toggleServerButton.Size = new Size(140, 40);
-            toggleServerButton.Location = new Point(20, statusLabel.Bottom + 20);
-            toggleServerButton.FlatStyle = FlatStyle.Flat;
-            toggleServerButton.BackColor = Color.SlateBlue;
-            toggleServerButton.ForeColor = Color.White;
-            toggleServerButton.Click += async (s, e) =>
+            headerPanel = new GradientPanel()
             {
+                Dock = DockStyle.Top,
+                Height = 80,
+                ColorTop = Color.FromArgb(30, 30, 30),
+                ColorBottom = Color.FromArgb(60, 60, 60),
+            };
+            headerLabel = new Label()
+            {
+                Text = "🚀 Shutdown Server",
+                Font = new Font("Segoe UI", 20, FontStyle.Bold),
+                ForeColor = Color.White,
+                TextAlign = ContentAlignment.MiddleCenter,
+                Dock = DockStyle.Fill,
+            };
+            headerPanel.Controls.Add(headerLabel);
+            Controls.Add(headerPanel);
+            logoPictureBox = new PictureBox()
+            {
+                Size = new Size(64, 64),
+                Location = new Point(20, 100),
+                SizeMode = PictureBoxSizeMode.StretchImage,
+                BackColor = Color.Transparent,
+            };
+            Controls.Add(logoPictureBox);
+            titleLabel = new Label()
+            {
+                Text = "Shutdown Server",
+                Font = new Font("Segoe UI", 16, FontStyle.Bold),
+                AutoSize = true,
+                Location = new Point(100, 100),
+                ForeColor = Color.White,
+            };
+            Controls.Add(titleLabel);
+            statusPictureBox = new PictureBox()
+            {
+                Size = new Size(24, 24),
+                Location = new Point(100, 140),
+                SizeMode = PictureBoxSizeMode.StretchImage,
+                BackColor = Color.Transparent,
+            };
+            Controls.Add(statusPictureBox);
+            statusLabel = new Label()
+            {
+                Text = "Status: Server is stopped",
+                Font = new Font("Segoe UI", 12),
+                AutoSize = true,
+                Location = new Point(statusPictureBox.Right + 5, 140),
+                ForeColor = Color.White,
+            };
+            Controls.Add(statusLabel);
+            toggleButton = new Button()
+            {
+                Text = "Start Server",
+                Location = new Point(100, 180),
+                Size = new Size(140, 40),
+                FlatStyle = FlatStyle.Flat,
+                BackColor = buttonStartColor,
+                ForeColor = Color.White,
+                Font = new Font("Segoe UI", 12, FontStyle.Bold),
+            };
+            toggleButton.FlatAppearance.BorderSize = 0;
+            toggleButton.Click += async (s, e) =>
+            {
+                StartButtonAnimation();
                 await ToggleServerAsync();
             };
-            cardPanel.Controls.Add(toggleServerButton);
-            linkLabel = new Label();
-            linkLabel.Text = "N/A";
-            linkLabel.Font = new Font("Segoe UI", 10, FontStyle.Regular);
-            linkLabel.AutoSize = true;
-            linkLabel.Location = new Point(20, toggleServerButton.Bottom + 20);
-            linkLabel.ForeColor = IsLightTheme() ? lightText : darkText;
-            cardPanel.Controls.Add(linkLabel);
-            copyPictureBox = new PictureBox();
-            copyPictureBox.Size = new Size(24, 24);
-            copyPictureBox.Location = new Point(linkLabel.Right + 10, linkLabel.Top - 3);
-            copyPictureBox.Cursor = Cursors.Hand;
+            Controls.Add(toggleButton);
+            linkLabel = new Label()
+            {
+                Text = "N/A",
+                Font = new Font("Segoe UI", 10),
+                AutoSize = true,
+                Location = new Point(100, 230),
+                ForeColor = Color.White,
+            };
+            Controls.Add(linkLabel);
+            copyPictureBox = new PictureBox()
+            {
+                Size = new Size(24, 24),
+                Location = new Point(linkLabel.Right + 5, linkLabel.Top),
+                SizeMode = PictureBoxSizeMode.StretchImage,
+                Cursor = Cursors.Hand,
+                Visible = false,
+                BackColor = Color.Transparent,
+            };
             copyPictureBox.Click += CopyLinkToClipboard;
-            cardPanel.Controls.Add(copyPictureBox);
-            this.Controls.Add(cardPanel);
-            setPinButton = new Button();
-            setPinButton.Text = "Set Pin";
-            setPinButton.Font = new Font("Segoe UI", 10, FontStyle.Regular);
-            setPinButton.Size = new Size(100, 30);
-            setPinButton.Location = new Point(
-                (this.ClientSize.Width - setPinButton.Width) / 2,
-                cardPanel.Bottom + 20
-            );
-            setPinButton.FlatStyle = FlatStyle.Flat;
-            setPinButton.BackColor = Color.Gray;
-            setPinButton.ForeColor = Color.White;
-            setPinButton.Click += SetPinButton_Click;
-            this.Controls.Add(setPinButton);
-            pinCardPanel = new RoundedPanel();
-            pinCardPanel.Size = new Size(300, 80);
-            pinCardPanel.Location = new Point(
-                (this.ClientSize.Width - pinCardPanel.Width) / 2,
-                setPinButton.Bottom + 10
-            );
-            pinCardPanel.BackColor = IsLightTheme() ? lightCardBack : darkCardBack;
-            pinCardPanel.Visible = false;
-            pinTextBox1 = new TextBox();
-            pinTextBox1.Size = new Size(40, 40);
-            pinTextBox1.Location = new Point(20, 20);
-            pinTextBox1.MaxLength = 1;
-            pinTextBox1.TextAlign = HorizontalAlignment.Center;
-            pinTextBox1.PasswordChar = '*';
-            pinTextBox2 = new TextBox();
-            pinTextBox2.Size = new Size(40, 40);
-            pinTextBox2.Location = new Point(pinTextBox1.Right + 10, 20);
-            pinTextBox2.MaxLength = 1;
-            pinTextBox2.TextAlign = HorizontalAlignment.Center;
-            pinTextBox2.PasswordChar = '*';
-            pinTextBox3 = new TextBox();
-            pinTextBox3.Size = new Size(40, 40);
-            pinTextBox3.Location = new Point(pinTextBox2.Right + 10, 20);
-            pinTextBox3.MaxLength = 1;
-            pinTextBox3.TextAlign = HorizontalAlignment.Center;
-            pinTextBox3.PasswordChar = '*';
-            pinTextBox4 = new TextBox();
-            pinTextBox4.Size = new Size(40, 40);
-            pinTextBox4.Location = new Point(pinTextBox3.Right + 10, 20);
-            pinTextBox4.MaxLength = 1;
-            pinTextBox4.TextAlign = HorizontalAlignment.Center;
-            pinTextBox4.PasswordChar = '*';
-            confirmPinButton = new Button();
-            confirmPinButton.Text = "Confirm";
-            confirmPinButton.Font = new Font("Segoe UI", 10, FontStyle.Regular);
-            confirmPinButton.Size = new Size(80, 30);
-            confirmPinButton.Location = new Point(pinTextBox4.Right + 10, 25);
-            confirmPinButton.FlatStyle = FlatStyle.Flat;
-            confirmPinButton.BackColor = Color.DarkGreen;
-            confirmPinButton.ForeColor = Color.White;
+            Controls.Add(copyPictureBox);
+            togglePinButton = new Button()
+            {
+                Text = "Set Pin",
+                Location = new Point(100, 280),
+                Size = new Size(100, 30),
+                FlatStyle = FlatStyle.Flat,
+                BackColor = Color.Gray,
+                ForeColor = Color.White,
+                Font = new Font("Segoe UI", 10),
+            };
+            togglePinButton.Click += TogglePinButton_Click;
+            Controls.Add(togglePinButton);
+            pinTextBox1 = new TextBox()
+            {
+                Location = new Point(210, 280),
+                Size = new Size(30, 30),
+                MaxLength = 1,
+                PasswordChar = '*',
+                Visible = false,
+            };
+            pinTextBox2 = new TextBox()
+            {
+                Location = new Point(250, 280),
+                Size = new Size(30, 30),
+                MaxLength = 1,
+                PasswordChar = '*',
+                Visible = false,
+            };
+            pinTextBox3 = new TextBox()
+            {
+                Location = new Point(290, 280),
+                Size = new Size(30, 30),
+                MaxLength = 1,
+                PasswordChar = '*',
+                Visible = false,
+            };
+            pinTextBox4 = new TextBox()
+            {
+                Location = new Point(330, 280),
+                Size = new Size(30, 30),
+                MaxLength = 1,
+                PasswordChar = '*',
+                Visible = false,
+            };
+            Controls.Add(pinTextBox1);
+            Controls.Add(pinTextBox2);
+            Controls.Add(pinTextBox3);
+            Controls.Add(pinTextBox4);
+            confirmPinButton = new Button()
+            {
+                Text = "Confirm",
+                Location = new Point(370, 280),
+                Size = new Size(80, 30),
+                FlatStyle = FlatStyle.Flat,
+                BackColor = Color.DarkGreen,
+                ForeColor = Color.White,
+                Font = new Font("Segoe UI", 10),
+                Visible = false,
+            };
             confirmPinButton.Click += ConfirmPinButton_Click;
-            pinCardPanel.Controls.Add(pinTextBox1);
-            pinCardPanel.Controls.Add(pinTextBox2);
-            pinCardPanel.Controls.Add(pinTextBox3);
-            pinCardPanel.Controls.Add(pinTextBox4);
-            pinCardPanel.Controls.Add(confirmPinButton);
-            this.Controls.Add(pinCardPanel);
-            trayIcon = new NotifyIcon();
-            trayIcon.Text = "Shutdown Server";
-            trayIcon.Icon = SystemIcons.Application;
-            trayIcon.Visible = false;
-            ContextMenuStrip trayMenu = new ContextMenuStrip();
+            Controls.Add(confirmPinButton);
+            trayIcon = new NotifyIcon()
+            {
+                Text = "Shutdown Server",
+                Icon = SystemIcons.Application,
+                Visible = false,
+            };
+            var trayMenu = new ContextMenuStrip();
             trayMenu.Items.Add("Open", null, (s, e) => ShowForm());
             trayMenu.Items.Add(
                 "Exit",
@@ -215,51 +227,24 @@ namespace ShutdownServerApp
                 }
             );
             trayIcon.ContextMenuStrip = trayMenu;
-            this.Resize += (s, e) =>
+            Resize += (s, e) =>
             {
-                if (this.WindowState == FormWindowState.Minimized)
+                if (WindowState == FormWindowState.Minimized)
                 {
-                    this.Hide();
+                    Hide();
                     trayIcon.Visible = true;
                 }
             };
         }
 
-        private async Task ToggleServerAsync()
+        private void TogglePinButton_Click(object sender, EventArgs e)
         {
-            if (!serverRunning)
-            {
-                await webServer.StartAsync();
-                serverRunning = true;
-                UpdateUI();
-            }
-            else
-            {
-                await webServer.StopAsync();
-                serverRunning = false;
-                UpdateUI();
-            }
-        }
-
-        private void UpdateUI()
-        {
-            if (serverRunning)
-            {
-                statusLabel.Text = "Status: Server is running";
-                toggleServerButton.Text = "Stop Server";
-                linkLabel.Text = $"http://{webServer.LocalIPAddress}:5050/shutdown";
-            }
-            else
-            {
-                statusLabel.Text = "Status: Server is stopped";
-                toggleServerButton.Text = "Start Server";
-                linkLabel.Text = "N/A";
-            }
-        }
-
-        private void SetPinButton_Click(object sender, EventArgs e)
-        {
-            pinCardPanel.Visible = !pinCardPanel.Visible;
+            bool visible = !pinTextBox1.Visible;
+            pinTextBox1.Visible = visible;
+            pinTextBox2.Visible = visible;
+            pinTextBox3.Visible = visible;
+            pinTextBox4.Visible = visible;
+            confirmPinButton.Visible = visible;
         }
 
         private void ConfirmPinButton_Click(object sender, EventArgs e)
@@ -273,19 +258,44 @@ namespace ShutdownServerApp
                 pinTextBox2.Text = "";
                 pinTextBox3.Text = "";
                 pinTextBox4.Text = "";
-                pinCardPanel.Visible = false;
+                pinTextBox1.Visible = false;
+                pinTextBox2.Visible = false;
+                pinTextBox3.Visible = false;
+                pinTextBox4.Visible = false;
+                confirmPinButton.Visible = false;
             }
             else
             {
-                MessageBox.Show("Enter exactly 4 digits.");
+                MessageBox.Show("Voer exact 4 cijfers in.");
             }
         }
 
-        private void CopyLinkToClipboard(object sender, EventArgs e)
+        private void MainForm_Shown(object sender, EventArgs e)
         {
-            if (!string.IsNullOrEmpty(linkLabel.Text) && linkLabel.Text != "N/A")
+            fadeInTimer = new Timer { Interval = 30 };
+            fadeInTimer.Tick += (s, evt) =>
             {
-                Clipboard.SetText(linkLabel.Text);
+                if (this.Opacity < 1.0)
+                    this.Opacity += fadeInStep;
+                else
+                    fadeInTimer.Stop();
+            };
+            fadeInTimer.Start();
+        }
+
+        private async Task LoadLogoImageAsync()
+        {
+            string imageUrl = "https://img.icons8.com/fluency/64/000000/shutdown.png";
+            try
+            {
+                using HttpClient client = new HttpClient();
+                var bytes = await client.GetByteArrayAsync(imageUrl);
+                using var ms = new System.IO.MemoryStream(bytes);
+                logoPictureBox.Image = Image.FromStream(ms);
+            }
+            catch
+            {
+                logoPictureBox.Image = SystemIcons.Application.ToBitmap();
             }
         }
 
@@ -294,14 +304,10 @@ namespace ShutdownServerApp
             string copyIconUrl = "https://img.icons8.com/material-rounded/24/000000/copy.png";
             try
             {
-                using (HttpClient client = new HttpClient())
-                {
-                    byte[] bytes = await client.GetByteArrayAsync(copyIconUrl);
-                    using (var ms = new System.IO.MemoryStream(bytes))
-                    {
-                        copyPictureBox.Image = Image.FromStream(ms);
-                    }
-                }
+                using HttpClient client = new HttpClient();
+                var bytes = await client.GetByteArrayAsync(copyIconUrl);
+                using var ms = new System.IO.MemoryStream(bytes);
+                copyPictureBox.Image = Image.FromStream(ms);
             }
             catch
             {
@@ -309,24 +315,118 @@ namespace ShutdownServerApp
             }
         }
 
-        private void MainForm_Shown(object sender, EventArgs e)
+        private async Task LoadStatusIconsAsync()
         {
-            fadeInTimer = new Timer();
-            fadeInTimer.Interval = 30;
-            fadeInTimer.Tick += (s, evt) =>
+            string runningIconUrl = "https://img.icons8.com/color/48/000000/ok.png";
+            string stoppedIconUrl = "https://img.icons8.com/color/48/000000/cancel.png";
+            try
             {
-                if (this.Opacity < 1.0)
-                    this.Opacity += 0.05;
-                else
-                    fadeInTimer.Stop();
-            };
-            fadeInTimer.Start();
+                using HttpClient client = new HttpClient();
+                var runningBytes = await client.GetByteArrayAsync(runningIconUrl);
+                using (var ms = new System.IO.MemoryStream(runningBytes))
+                {
+                    statusRunningIcon = Image.FromStream(ms);
+                }
+                var stoppedBytes = await client.GetByteArrayAsync(stoppedIconUrl);
+                using (var ms = new System.IO.MemoryStream(stoppedBytes))
+                {
+                    statusStoppedIcon = Image.FromStream(ms);
+                }
+            }
+            catch
+            {
+                statusRunningIcon = SystemIcons.Application.ToBitmap();
+                statusStoppedIcon = SystemIcons.Error.ToBitmap();
+            }
+        }
+
+        private async Task ToggleServerAsync()
+        {
+            if (!_serverRunning)
+            {
+                await webServer.StartAsync();
+                _serverRunning = true;
+                UpdateUI();
+            }
+            else
+            {
+                await webServer.StopAsync();
+                _serverRunning = false;
+                UpdateUI();
+            }
+        }
+
+        private void UpdateUI()
+        {
+            if (_serverRunning)
+            {
+                statusLabel.Text = "Status: Server is running";
+                statusPictureBox.Image = statusRunningIcon;
+                toggleButton.Text = "Stop Server";
+                linkLabel.Text = $"http://{webServer.LocalIPAddress}:5050/shutdown";
+                linkLabel.Refresh();
+                copyPictureBox.Location = new Point(linkLabel.Right + 5, linkLabel.Top);
+                copyPictureBox.Visible = true;
+            }
+            else
+            {
+                statusLabel.Text = "Status: Server is stopped";
+                statusPictureBox.Image = statusStoppedIcon;
+                toggleButton.Text = "Start Server";
+                linkLabel.Text = "N/A";
+                copyPictureBox.Visible = false;
+            }
+        }
+
+        private void CopyLinkToClipboard(object sender, EventArgs e)
+        {
+            if (!string.IsNullOrEmpty(linkLabel.Text) && linkLabel.Text != "N/A")
+            {
+                Clipboard.SetText(linkLabel.Text);
+                copyToolTip.Show("Copied!", copyPictureBox, 0, -20, 1500);
+            }
+        }
+
+        private void StartButtonAnimation()
+        {
+            buttonAnimProgress = 0;
+            if (buttonAnimationTimer == null)
+            {
+                buttonAnimationTimer = new Timer { Interval = 30 };
+                buttonAnimationTimer.Tick += ButtonAnimationTimer_Tick;
+            }
+            buttonAnimationTimer.Start();
+        }
+
+        private void ButtonAnimationTimer_Tick(object sender, EventArgs e)
+        {
+            buttonAnimProgress += buttonAnimStep;
+            if (buttonAnimProgress >= Math.PI)
+            {
+                buttonAnimationTimer.Stop();
+                toggleButton.BackColor = buttonStartColor;
+                return;
+            }
+            double factor = (1 - Math.Cos(buttonAnimProgress)) / 2;
+            toggleButton.BackColor = InterpolateColor(
+                buttonStartColor,
+                buttonHighlightColor,
+                factor
+            );
+        }
+
+        private Color InterpolateColor(Color start, Color end, double factor)
+        {
+            int r = (int)(start.R + (end.R - start.R) * factor);
+            int g = (int)(start.G + (end.G - start.G) * factor);
+            int b = (int)(start.B + (end.B - start.B) * factor);
+            return Color.FromArgb(r, g, b);
         }
 
         private void ShowForm()
         {
-            this.Show();
-            this.WindowState = FormWindowState.Normal;
+            Show();
+            WindowState = FormWindowState.Normal;
             trayIcon.Visible = false;
         }
     }
