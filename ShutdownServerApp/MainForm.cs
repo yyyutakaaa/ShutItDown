@@ -266,7 +266,7 @@ namespace ShutdownServerApp
             }
             else
             {
-                MessageBox.Show("Voer exact 4 cijfers in.");
+                MessageBox.Show("Enter exactly 4 digits.");
             }
         }
 
