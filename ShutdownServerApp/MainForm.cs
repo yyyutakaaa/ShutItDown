@@ -18,25 +18,22 @@ namespace ShutdownServerApp
         private Label linkLabel;
         private PictureBox copyPictureBox;
         private NotifyIcon trayIcon;
-
+        private Button togglePinButton;
+        private TextBox pinTextBox1;
+        private TextBox pinTextBox2;
+        private TextBox pinTextBox3;
+        private TextBox pinTextBox4;
+        private Button confirmPinButton;
         private WebServer webServer;
         private bool _serverRunning = false;
-
-        // Status-icoon afbeeldingen
         private Image statusRunningIcon;
         private Image statusStoppedIcon;
-
-        // ToolTip voor de copy-notificatie
         private ToolTip copyToolTip = new ToolTip();
-
-        // Timers voor animaties
         private Timer fadeInTimer;
         private Timer buttonAnimationTimer;
         private double fadeInStep = 0.05;
         private double buttonAnimProgress = 0.0;
-        private const double buttonAnimStep = 0.1; // snellere animatie
-
-        // Kleuren voor de knopanimatie
+        private const double buttonAnimStep = 0.1;
         private readonly Color buttonStartColor = Color.SlateBlue;
         private readonly Color buttonHighlightColor = Color.MediumSlateBlue;
 
@@ -50,8 +47,6 @@ namespace ShutdownServerApp
             FormBorderStyle = FormBorderStyle.FixedSingle;
             MaximizeBox = false;
             webServer = new WebServer();
-
-            // Start met volledige transparantie en fade-in
             this.Opacity = 0;
             InitializeComponents();
             this.Shown += MainForm_Shown;
@@ -65,7 +60,6 @@ namespace ShutdownServerApp
 
         private void InitializeComponents()
         {
-            // Header panel met gradient achtergrond
             headerPanel = new GradientPanel()
             {
                 Dock = DockStyle.Top,
@@ -73,7 +67,6 @@ namespace ShutdownServerApp
                 ColorTop = Color.FromArgb(30, 30, 30),
                 ColorBottom = Color.FromArgb(60, 60, 60),
             };
-
             headerLabel = new Label()
             {
                 Text = "🚀 Shutdown Server",
@@ -84,8 +77,6 @@ namespace ShutdownServerApp
             };
             headerPanel.Controls.Add(headerLabel);
             Controls.Add(headerPanel);
-
-            // Logo PictureBox; laadt de shutdown afbeelding online
             logoPictureBox = new PictureBox()
             {
                 Size = new Size(64, 64),
@@ -94,8 +85,6 @@ namespace ShutdownServerApp
                 BackColor = Color.Transparent,
             };
             Controls.Add(logoPictureBox);
-
-            // Titel label
             titleLabel = new Label()
             {
                 Text = "Shutdown Server",
@@ -105,8 +94,6 @@ namespace ShutdownServerApp
                 ForeColor = Color.White,
             };
             Controls.Add(titleLabel);
-
-            // Status PictureBox voor het status-icoon
             statusPictureBox = new PictureBox()
             {
                 Size = new Size(24, 24),
@@ -115,8 +102,6 @@ namespace ShutdownServerApp
                 BackColor = Color.Transparent,
             };
             Controls.Add(statusPictureBox);
-
-            // Status label naast de status PictureBox
             statusLabel = new Label()
             {
                 Text = "Status: Server is stopped",
@@ -126,8 +111,6 @@ namespace ShutdownServerApp
                 ForeColor = Color.White,
             };
             Controls.Add(statusLabel);
-
-            // Toggle-knop met initiële styling
             toggleButton = new Button()
             {
                 Text = "Start Server",
@@ -145,8 +128,6 @@ namespace ShutdownServerApp
                 await ToggleServerAsync();
             };
             Controls.Add(toggleButton);
-
-            // Link label met de shutdown URL
             linkLabel = new Label()
             {
                 Text = "N/A",
@@ -156,8 +137,6 @@ namespace ShutdownServerApp
                 ForeColor = Color.White,
             };
             Controls.Add(linkLabel);
-
-            // Copy icoon PictureBox voor de link
             copyPictureBox = new PictureBox()
             {
                 Size = new Size(24, 24),
@@ -169,16 +148,73 @@ namespace ShutdownServerApp
             };
             copyPictureBox.Click += CopyLinkToClipboard;
             Controls.Add(copyPictureBox);
-
-            // NotifyIcon voor minimaliseren naar de tray
+            togglePinButton = new Button()
+            {
+                Text = "Set Pin",
+                Location = new Point(100, 280),
+                Size = new Size(100, 30),
+                FlatStyle = FlatStyle.Flat,
+                BackColor = Color.Gray,
+                ForeColor = Color.White,
+                Font = new Font("Segoe UI", 10),
+            };
+            togglePinButton.Click += TogglePinButton_Click;
+            Controls.Add(togglePinButton);
+            pinTextBox1 = new TextBox()
+            {
+                Location = new Point(210, 280),
+                Size = new Size(30, 30),
+                MaxLength = 1,
+                PasswordChar = '*',
+                Visible = false,
+            };
+            pinTextBox2 = new TextBox()
+            {
+                Location = new Point(250, 280),
+                Size = new Size(30, 30),
+                MaxLength = 1,
+                PasswordChar = '*',
+                Visible = false,
+            };
+            pinTextBox3 = new TextBox()
+            {
+                Location = new Point(290, 280),
+                Size = new Size(30, 30),
+                MaxLength = 1,
+                PasswordChar = '*',
+                Visible = false,
+            };
+            pinTextBox4 = new TextBox()
+            {
+                Location = new Point(330, 280),
+                Size = new Size(30, 30),
+                MaxLength = 1,
+                PasswordChar = '*',
+                Visible = false,
+            };
+            Controls.Add(pinTextBox1);
+            Controls.Add(pinTextBox2);
+            Controls.Add(pinTextBox3);
+            Controls.Add(pinTextBox4);
+            confirmPinButton = new Button()
+            {
+                Text = "Confirm",
+                Location = new Point(370, 280),
+                Size = new Size(80, 30),
+                FlatStyle = FlatStyle.Flat,
+                BackColor = Color.DarkGreen,
+                ForeColor = Color.White,
+                Font = new Font("Segoe UI", 10),
+                Visible = false,
+            };
+            confirmPinButton.Click += ConfirmPinButton_Click;
+            Controls.Add(confirmPinButton);
             trayIcon = new NotifyIcon()
             {
                 Text = "Shutdown Server",
                 Icon = SystemIcons.Application,
                 Visible = false,
             };
-
-            // Contextmenu voor het tray-icoon
             var trayMenu = new ContextMenuStrip();
             trayMenu.Items.Add("Open", null, (s, e) => ShowForm());
             trayMenu.Items.Add(
@@ -191,8 +227,6 @@ namespace ShutdownServerApp
                 }
             );
             trayIcon.ContextMenuStrip = trayMenu;
-
-            // Minimaliseren naar de tray
             Resize += (s, e) =>
             {
                 if (WindowState == FormWindowState.Minimized)
@@ -201,6 +235,39 @@ namespace ShutdownServerApp
                     trayIcon.Visible = true;
                 }
             };
+        }
+
+        private void TogglePinButton_Click(object sender, EventArgs e)
+        {
+            bool visible = !pinTextBox1.Visible;
+            pinTextBox1.Visible = visible;
+            pinTextBox2.Visible = visible;
+            pinTextBox3.Visible = visible;
+            pinTextBox4.Visible = visible;
+            confirmPinButton.Visible = visible;
+        }
+
+        private void ConfirmPinButton_Click(object sender, EventArgs e)
+        {
+            string newPin =
+                pinTextBox1.Text + pinTextBox2.Text + pinTextBox3.Text + pinTextBox4.Text;
+            if (newPin.Length == 4)
+            {
+                webServer.PinCode = newPin;
+                pinTextBox1.Text = "";
+                pinTextBox2.Text = "";
+                pinTextBox3.Text = "";
+                pinTextBox4.Text = "";
+                pinTextBox1.Visible = false;
+                pinTextBox2.Visible = false;
+                pinTextBox3.Visible = false;
+                pinTextBox4.Visible = false;
+                confirmPinButton.Visible = false;
+            }
+            else
+            {
+                MessageBox.Show("Voer exact 4 cijfers in.");
+            }
         }
 
         private void MainForm_Shown(object sender, EventArgs e)
@@ -255,13 +322,11 @@ namespace ShutdownServerApp
             try
             {
                 using HttpClient client = new HttpClient();
-                // Laad icoon voor "running"
                 var runningBytes = await client.GetByteArrayAsync(runningIconUrl);
                 using (var ms = new System.IO.MemoryStream(runningBytes))
                 {
                     statusRunningIcon = Image.FromStream(ms);
                 }
-                // Laad icoon voor "stopped"
                 var stoppedBytes = await client.GetByteArrayAsync(stoppedIconUrl);
                 using (var ms = new System.IO.MemoryStream(stoppedBytes))
                 {
@@ -270,7 +335,6 @@ namespace ShutdownServerApp
             }
             catch
             {
-                // Fallback naar systeemicoontjes bij fout
                 statusRunningIcon = SystemIcons.Application.ToBitmap();
                 statusStoppedIcon = SystemIcons.Error.ToBitmap();
             }
@@ -319,7 +383,6 @@ namespace ShutdownServerApp
             if (!string.IsNullOrEmpty(linkLabel.Text) && linkLabel.Text != "N/A")
             {
                 Clipboard.SetText(linkLabel.Text);
-                // Toon een kleine popup boven het copy-icoon
                 copyToolTip.Show("Copied!", copyPictureBox, 0, -20, 1500);
             }
         }

@@ -15,7 +15,7 @@ namespace ShutdownServerApp
     {
         private IHost _host;
         private CancellationTokenSource _cts;
-
+        public string PinCode { get; set; } = "";
         public string LocalIPAddress => GetLocalIPAddress();
 
         public async Task StartAsync()
@@ -34,6 +34,39 @@ namespace ShutdownServerApp
                                 "/shutdown",
                                 async context =>
                                 {
+                                    if (!string.IsNullOrEmpty(PinCode))
+                                    {
+                                        var d1 = context.Request.Query["d1"].ToString();
+                                        var d2 = context.Request.Query["d2"].ToString();
+                                        var d3 = context.Request.Query["d3"].ToString();
+                                        var d4 = context.Request.Query["d4"].ToString();
+                                        string providedPin = d1 + d2 + d3 + d4;
+                                        if (providedPin.Length != 4)
+                                        {
+                                            context.Response.ContentType = "text/html";
+                                            string html =
+                                                "<html><head><title>Shutdown</title></head><body>";
+                                            html += "<form method='get' action='/shutdown'>";
+                                            html +=
+                                                "<input type='password' name='d1' maxlength='1' pattern='\\d' required>";
+                                            html +=
+                                                "<input type='password' name='d2' maxlength='1' pattern='\\d' required>";
+                                            html +=
+                                                "<input type='password' name='d3' maxlength='1' pattern='\\d' required>";
+                                            html +=
+                                                "<input type='password' name='d4' maxlength='1' pattern='\\d' required>";
+                                            html += "<input type='submit' value='Shutdown'>";
+                                            html += "</form></body></html>";
+                                            await context.Response.WriteAsync(html);
+                                            return;
+                                        }
+                                        else if (providedPin != PinCode)
+                                        {
+                                            context.Response.StatusCode = 403;
+                                            await context.Response.WriteAsync("Invalid pin");
+                                            return;
+                                        }
+                                    }
                                     try
                                     {
                                         Process.Start(
@@ -52,7 +85,6 @@ namespace ShutdownServerApp
                                     await context.Response.WriteAsync("Shutdown initiated.");
                                 }
                             );
-
                             endpoints.MapGet(
                                 "/stop",
                                 async context =>
@@ -65,18 +97,13 @@ namespace ShutdownServerApp
                     });
                 });
             _host = builder.Build();
-
-            // RunAsync wordt gestart op de achtergrond
             _ = Task.Run(async () =>
             {
                 try
                 {
                     await _host.RunAsync(_cts.Token);
                 }
-                catch (OperationCanceledException)
-                {
-                    // Verwacht bij annulering
-                }
+                catch (OperationCanceledException) { }
             });
         }
 
