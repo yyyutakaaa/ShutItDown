@@ -11,6 +11,7 @@ This project is a user-friendly Windows desktop application built using C# (.NET
 - **Intuitive GUI:** A modern, animated user interface built with Windows Forms.
 - **System Tray Integration:** Minimizes to the system tray for seamless background operation.
 - **Easy Deployment:** Provided as a self-contained executable (EXE) that doesn't require additional installations.
+- **Optional PIN Security:** Add an extra layer of protection with a 4-digit PIN code to prevent unauthorized access.
 
 ### 🛠 Technologies Used
 - **C# (.NET 6)**
@@ -22,12 +23,16 @@ This project is a user-friendly Windows desktop application built using C# (.NET
 
 ## ⚠️ Important Security Notice and Risks
 
-This application exposes an HTTP endpoint (`/shutdown`) that triggers an immediate system shutdown when accessed. This functionality inherently carries significant security risks, especially if used in an unsecured network or publicly accessible environment.
+This application exposes an HTTP endpoint (`/shutdown`) that triggers an immediate system shutdown when accessed. To mitigate the risk of unauthorized shutdowns, the app now includes support for an **optional 4-digit PIN code**.
+
+**Security Enhancements:**
+- If a PIN is configured, shutdown requests must include the correct code.
+- PIN validation is enforced both on the local application and web interface.
 
 **Recommended Usage:**
-- Only use within secure, trusted networks.
-- Do not expose the endpoint directly to the internet without adequate security measures.
-- Consider implementing additional authentication or network-level security controls if used in sensitive environments.
+- Use the PIN feature to prevent misuse, especially on shared or open networks.
+- Do not expose the endpoint directly to the internet without further protection.
+- Consider additional firewall or network-layer security if using this in sensitive environments.
 
 ---
 
@@ -38,3 +43,5 @@ By using this application, you acknowledge that you understand and accept the in
 ---
 
 Enjoy the convenience, but always stay secure! 🚀✨
+
+Made with 💜 by Mehdi
