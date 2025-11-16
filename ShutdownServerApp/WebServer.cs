@@ -17,14 +17,20 @@ namespace ShutdownServerApp
         private CancellationTokenSource _cts;
         public string PinCode { get; set; } = "";
         public string LocalIPAddress => GetLocalIPAddress();
+        private const string ServerUrl = "http://localhost:5050";
 
         public async Task StartAsync()
         {
+            if (_host != null)
+            {
+                return;
+            }
+
             _cts = new CancellationTokenSource();
             var builder = Host.CreateDefaultBuilder()
                 .ConfigureWebHostDefaults(webBuilder =>
                 {
-                    webBuilder.UseUrls("http://0.0.0.0:5050");
+                    webBuilder.UseUrls(ServerUrl);
                     webBuilder.Configure(app =>
                     {
                         app.UseRouting();
@@ -118,19 +124,31 @@ namespace ShutdownServerApp
                     });
                 });
             _host = builder.Build();
-            _ = Task.Run(async () =>
+
+            try
             {
-                try
+                _ = Task.Run(async () =>
                 {
-                    await _host.RunAsync(_cts.Token);
-                }
-                catch (OperationCanceledException) { }
-            });
+                    try
+                    {
+                        await _host.RunAsync(_cts.Token);
+                    }
+                    catch (OperationCanceledException) { }
+                });
+            }
+            catch
+            {
+                _cts.Cancel();
+                _cts.Dispose();
+                _cts = null;
+                _host = null;
+                throw;
+            }
         }
 
         public async Task StopAsync()
         {
-            _cts.Cancel();
+            _cts?.Cancel();
             if (_host != null)
             {
                 try
@@ -140,6 +158,8 @@ namespace ShutdownServerApp
                 catch { }
                 _host = null;
             }
+            _cts?.Dispose();
+            _cts = null;
         }
 
         private string GetLocalIPAddress()
@@ -147,11 +167,19 @@ namespace ShutdownServerApp
             string localIP = "127.0.0.1";
             try
             {
-                using Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, 0);
-                socket.Connect("8.8.8.8", 80);
-                if (socket.LocalEndPoint is IPEndPoint endPoint)
+                foreach (var ni in System.Net.NetworkInformation.NetworkInterface.GetAllNetworkInterfaces())
                 {
-                    localIP = endPoint.Address.ToString();
+                    if (ni.OperationalStatus != System.Net.NetworkInformation.OperationalStatus.Up)
+                        continue;
+                    var props = ni.GetIPProperties();
+                    foreach (var ip in props.UnicastAddresses)
+                    {
+                        if (ip.Address.AddressFamily == AddressFamily.InterNetwork && !IPAddress.IsLoopback(ip.Address))
+                        {
+                            localIP = ip.Address.ToString();
+                            return localIP;
+                        }
+                    }
                 }
             }
             catch { }

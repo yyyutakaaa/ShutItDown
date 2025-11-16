@@ -1,6 +1,5 @@
 using System;
 using System.Drawing;
-using System.Net.Http;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -36,6 +35,10 @@ namespace ShutdownServerApp
         private const double buttonAnimStep = 0.1;
         private readonly Color buttonStartColor = Color.SlateBlue;
         private readonly Color buttonHighlightColor = Color.MediumSlateBlue;
+        private bool _isToggling = false;
+        private readonly Image defaultLogoIcon = SystemIcons.Shield.ToBitmap();
+        private readonly Image defaultCopyIcon = SystemIcons.Information.ToBitmap();
+        private const string ShutdownUrl = "http://localhost:5050/shutdown";
 
         public MainForm()
         {
@@ -47,15 +50,12 @@ namespace ShutdownServerApp
             FormBorderStyle = FormBorderStyle.FixedSingle;
             MaximizeBox = false;
             webServer = new WebServer();
+            statusRunningIcon = SystemIcons.Information.ToBitmap();
+            statusStoppedIcon = SystemIcons.Error.ToBitmap();
             this.Opacity = 0;
             InitializeComponents();
+            UpdateUI();
             this.Shown += MainForm_Shown;
-            this.Load += async (s, e) =>
-            {
-                await LoadLogoImageAsync();
-                await LoadCopyIconAsync();
-                await LoadStatusIconsAsync();
-            };
         }
 
         private void InitializeComponents()
@@ -84,6 +84,7 @@ namespace ShutdownServerApp
                 SizeMode = PictureBoxSizeMode.StretchImage,
                 BackColor = Color.Transparent,
             };
+            logoPictureBox.Image = defaultLogoIcon;
             Controls.Add(logoPictureBox);
             titleLabel = new Label()
             {
@@ -147,6 +148,7 @@ namespace ShutdownServerApp
                 BackColor = Color.Transparent,
             };
             copyPictureBox.Click += CopyLinkToClipboard;
+            copyPictureBox.Image = defaultCopyIcon;
             Controls.Add(copyPictureBox);
             togglePinButton = new Button()
             {
@@ -168,6 +170,8 @@ namespace ShutdownServerApp
                 PasswordChar = '*',
                 Visible = false,
             };
+            pinTextBox1.KeyPress += PinTextBox_KeyPress;
+            pinTextBox1.TextChanged += PinTextBox_TextChanged;
             pinTextBox2 = new TextBox()
             {
                 Location = new Point(250, 280),
@@ -176,6 +180,8 @@ namespace ShutdownServerApp
                 PasswordChar = '*',
                 Visible = false,
             };
+            pinTextBox2.KeyPress += PinTextBox_KeyPress;
+            pinTextBox2.TextChanged += PinTextBox_TextChanged;
             pinTextBox3 = new TextBox()
             {
                 Location = new Point(290, 280),
@@ -184,6 +190,8 @@ namespace ShutdownServerApp
                 PasswordChar = '*',
                 Visible = false,
             };
+            pinTextBox3.KeyPress += PinTextBox_KeyPress;
+            pinTextBox3.TextChanged += PinTextBox_TextChanged;
             pinTextBox4 = new TextBox()
             {
                 Location = new Point(330, 280),
@@ -192,6 +200,8 @@ namespace ShutdownServerApp
                 PasswordChar = '*',
                 Visible = false,
             };
+            pinTextBox4.KeyPress += PinTextBox_KeyPress;
+            pinTextBox4.TextChanged += PinTextBox_TextChanged;
             Controls.Add(pinTextBox1);
             Controls.Add(pinTextBox2);
             Controls.Add(pinTextBox3);
@@ -267,6 +277,7 @@ namespace ShutdownServerApp
             else
             {
                 MessageBox.Show("Enter exactly 4 digits.");
+                pinTextBox1.Focus();
             }
         }
 
@@ -283,76 +294,77 @@ namespace ShutdownServerApp
             fadeInTimer.Start();
         }
 
-        private async Task LoadLogoImageAsync()
+        private void PinTextBox_KeyPress(object sender, KeyPressEventArgs e)
         {
-            string imageUrl = "https://img.icons8.com/fluency/64/000000/shutdown.png";
-            try
+            if (!char.IsControl(e.KeyChar) && !char.IsDigit(e.KeyChar))
+                e.Handled = true;
+        }
+
+        private void PinTextBox_TextChanged(object sender, EventArgs e)
+        {
+            if (sender is not TextBox tb) return;
+            if (tb.Text.Length == 1)
             {
-                using HttpClient client = new HttpClient();
-                var bytes = await client.GetByteArrayAsync(imageUrl);
-                using var ms = new System.IO.MemoryStream(bytes);
-                logoPictureBox.Image = Image.FromStream(ms);
-            }
-            catch
-            {
-                logoPictureBox.Image = SystemIcons.Application.ToBitmap();
+                MoveToNextPinBox(tb);
             }
         }
 
-        private async Task LoadCopyIconAsync()
+        private void MoveToNextPinBox(TextBox current)
         {
-            string copyIconUrl = "https://img.icons8.com/material-rounded/24/000000/copy.png";
-            try
+            if (current == pinTextBox1)
             {
-                using HttpClient client = new HttpClient();
-                var bytes = await client.GetByteArrayAsync(copyIconUrl);
-                using var ms = new System.IO.MemoryStream(bytes);
-                copyPictureBox.Image = Image.FromStream(ms);
+                pinTextBox2.Focus();
             }
-            catch
+            else if (current == pinTextBox2)
             {
-                copyPictureBox.Image = SystemIcons.Application.ToBitmap();
+                pinTextBox3.Focus();
             }
-        }
-
-        private async Task LoadStatusIconsAsync()
-        {
-            string runningIconUrl = "https://img.icons8.com/color/48/000000/ok.png";
-            string stoppedIconUrl = "https://img.icons8.com/color/48/000000/cancel.png";
-            try
+            else if (current == pinTextBox3)
             {
-                using HttpClient client = new HttpClient();
-                var runningBytes = await client.GetByteArrayAsync(runningIconUrl);
-                using (var ms = new System.IO.MemoryStream(runningBytes))
-                {
-                    statusRunningIcon = Image.FromStream(ms);
-                }
-                var stoppedBytes = await client.GetByteArrayAsync(stoppedIconUrl);
-                using (var ms = new System.IO.MemoryStream(stoppedBytes))
-                {
-                    statusStoppedIcon = Image.FromStream(ms);
-                }
+                pinTextBox4.Focus();
             }
-            catch
+            else if (current == pinTextBox4)
             {
-                statusRunningIcon = SystemIcons.Application.ToBitmap();
-                statusStoppedIcon = SystemIcons.Error.ToBitmap();
+                confirmPinButton.Focus();
             }
         }
 
         private async Task ToggleServerAsync()
         {
-            if (!_serverRunning)
+            if (_isToggling) return;
+            _isToggling = true;
+            toggleButton.Enabled = false;
+            try
             {
-                await webServer.StartAsync();
-                _serverRunning = true;
+                if (!_serverRunning)
+                {
+                    try
+                    {
+                        await webServer.StartAsync();
+                        _serverRunning = true;
+                    }
+                    catch (Exception ex)
+                    {
+                        _serverRunning = false;
+                        MessageBox.Show(
+                            "Kon de server niet starten: " + ex.Message,
+                            "Start mislukt",
+                            MessageBoxButtons.OK,
+                            MessageBoxIcon.Error
+                        );
+                    }
+                }
+                else
+                {
+                    await webServer.StopAsync();
+                    _serverRunning = false;
+                }
                 UpdateUI();
             }
-            else
+            finally
             {
-                await webServer.StopAsync();
-                _serverRunning = false;
-                UpdateUI();
+                toggleButton.Enabled = true;
+                _isToggling = false;
             }
         }
 
@@ -363,7 +375,8 @@ namespace ShutdownServerApp
                 statusLabel.Text = "Status: Server is running";
                 statusPictureBox.Image = statusRunningIcon;
                 toggleButton.Text = "Stop Server";
-                linkLabel.Text = $"http://{webServer.LocalIPAddress}:5050/shutdown";
+                linkLabel.Text = ShutdownUrl;
+                linkLabel.Tag = $"LAN: http://{webServer.LocalIPAddress}:5050/shutdown";
                 linkLabel.Refresh();
                 copyPictureBox.Location = new Point(linkLabel.Right + 5, linkLabel.Top);
                 copyPictureBox.Visible = true;
@@ -428,6 +441,22 @@ namespace ShutdownServerApp
             Show();
             WindowState = FormWindowState.Normal;
             trayIcon.Visible = false;
+        }
+
+        protected override void OnFormClosing(FormClosingEventArgs e)
+        {
+            trayIcon.Visible = false;
+            fadeInTimer?.Stop();
+            buttonAnimationTimer?.Stop();
+            try
+            {
+                webServer.StopAsync().GetAwaiter().GetResult();
+            }
+            catch { }
+            trayIcon?.Dispose();
+            fadeInTimer?.Dispose();
+            buttonAnimationTimer?.Dispose();
+            base.OnFormClosing(e);
         }
     }
 }

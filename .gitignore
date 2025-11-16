@@ -1,8 +1,10 @@
 bin/
 obj/
+publish/
+installer/output/
 *.user
 *.pdb
 *.cache
 *.log
-*.vs/
-*.vscode/
+.vs/
+.vscode/
