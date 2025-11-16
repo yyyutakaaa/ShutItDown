@@ -38,7 +38,7 @@ namespace ShutdownServerApp
         private bool _isToggling = false;
         private readonly Image defaultLogoIcon = SystemIcons.Shield.ToBitmap();
         private readonly Image defaultCopyIcon = SystemIcons.Information.ToBitmap();
-        private const string ShutdownUrl = "http://localhost:5050/shutdown";
+        private string ShutdownUrl => $"http://{webServer.LocalIPAddress}:5050/shutdown";
 
         public MainForm()
         {

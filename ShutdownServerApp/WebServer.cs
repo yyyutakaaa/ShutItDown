@@ -17,7 +17,7 @@ namespace ShutdownServerApp
         private CancellationTokenSource _cts;
         public string PinCode { get; set; } = "";
         public string LocalIPAddress => GetLocalIPAddress();
-        private const string ServerUrl = "http://localhost:5050";
+        private const string ServerUrl = "http://0.0.0.0:5050";
 
         public async Task StartAsync()
         {
