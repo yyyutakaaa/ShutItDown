@@ -5,6 +5,7 @@
 #define MyAppVersion "2.0.0"
 #define MyAppPublisher "yyyutakaaa"
 #define MyAppExeName "ShutdownServerApp.exe"
+#define MyAppIcon "..\\ShutdownServerApp\\Assets\\ShutdownServer.ico"
 #define PublishDir "..\\publish"
 
 [Setup]
@@ -16,6 +17,8 @@ DefaultDirName={pf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 OutputDir=..\installer\output
 OutputBaseFilename=ShutdownServer-Setup
+SetupIconFile={#MyAppIcon}
+UninstallDisplayIcon={app}\{#MyAppExeName}
 Compression=lzma
 SolidCompression=yes
 

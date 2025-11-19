@@ -39,7 +39,7 @@ namespace ShutdownServerApp
         private bool _isToggling = false;
         private CheckBox startupCheckBox;
         private bool _suppressStartupPrompt = false;
-        private readonly Image defaultLogoIcon = SystemIcons.Shield.ToBitmap();
+        private Image defaultLogoIcon;
         private readonly Image defaultCopyIcon = SystemIcons.Information.ToBitmap();
         private string ShutdownUrl => $"http://{webServer.LocalIPAddress}:5050/shutdown";
         private string StartupShortcutPath =>
@@ -47,9 +47,16 @@ namespace ShutdownServerApp
                 Environment.GetFolderPath(Environment.SpecialFolder.Startup),
                 "Shutdown Server.lnk"
             );
+        private readonly string logoImagePath =
+            Path.Combine(AppContext.BaseDirectory, "Assets", "logo.png");
 
         public MainForm()
         {
+            var associatedIcon = Icon.ExtractAssociatedIcon(Application.ExecutablePath)
+                ?? (Icon)SystemIcons.Application.Clone();
+            Icon = (Icon)associatedIcon.Clone();
+            defaultLogoIcon = LoadHighResolutionLogo() ?? associatedIcon.ToBitmap();
+            associatedIcon.Dispose();
             BackColor = Color.FromArgb(45, 45, 48);
             ForeColor = Color.White;
             Text = "Shutdown Server";
@@ -64,6 +71,20 @@ namespace ShutdownServerApp
             InitializeComponents();
             UpdateUI();
             this.Shown += MainForm_Shown;
+        }
+
+        private Image LoadHighResolutionLogo()
+        {
+            try
+            {
+                if (!File.Exists(logoImagePath)) return null;
+                using var temp = Image.FromFile(logoImagePath);
+                return new Bitmap(temp);
+            }
+            catch
+            {
+                return null;
+            }
         }
 
         private void InitializeComponents()
@@ -241,7 +262,9 @@ namespace ShutdownServerApp
             trayIcon = new NotifyIcon()
             {
                 Text = "Shutdown Server",
-                Icon = SystemIcons.Application,
+                Icon = this.Icon != null
+                    ? (Icon)this.Icon.Clone()
+                    : (Icon)SystemIcons.Application.Clone(),
                 Visible = false,
             };
             var trayMenu = new ContextMenuStrip();
