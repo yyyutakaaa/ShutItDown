@@ -8,3 +8,4 @@ installer/output/
 *.log
 .vs/
 .vscode/
+certificate.pfx

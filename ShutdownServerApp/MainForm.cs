@@ -1,5 +1,6 @@
 using System;
 using System.Drawing;
+using System.IO;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -36,9 +37,16 @@ namespace ShutdownServerApp
         private readonly Color buttonStartColor = Color.SlateBlue;
         private readonly Color buttonHighlightColor = Color.MediumSlateBlue;
         private bool _isToggling = false;
+        private CheckBox startupCheckBox;
+        private bool _suppressStartupPrompt = false;
         private readonly Image defaultLogoIcon = SystemIcons.Shield.ToBitmap();
         private readonly Image defaultCopyIcon = SystemIcons.Information.ToBitmap();
         private string ShutdownUrl => $"http://{webServer.LocalIPAddress}:5050/shutdown";
+        private string StartupShortcutPath =>
+            Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.Startup),
+                "Shutdown Server.lnk"
+            );
 
         public MainForm()
         {
@@ -219,6 +227,17 @@ namespace ShutdownServerApp
             };
             confirmPinButton.Click += ConfirmPinButton_Click;
             Controls.Add(confirmPinButton);
+            startupCheckBox = new CheckBox()
+            {
+                Text = "Launch Shutdown Server when Windows starts",
+                Location = new Point(100, 330),
+                AutoSize = true,
+                Font = new Font("Segoe UI", 10),
+                ForeColor = Color.White,
+                BackColor = Color.Transparent,
+            };
+            startupCheckBox.CheckedChanged += StartupCheckBox_CheckedChanged;
+            Controls.Add(startupCheckBox);
             trayIcon = new NotifyIcon()
             {
                 Text = "Shutdown Server",
@@ -245,6 +264,7 @@ namespace ShutdownServerApp
                     trayIcon.Visible = true;
                 }
             };
+            SyncStartupCheckBox();
         }
 
         private void TogglePinButton_Click(object sender, EventArgs e)
@@ -280,6 +300,141 @@ namespace ShutdownServerApp
                 pinTextBox1.Focus();
             }
         }
+
+        private void StartupCheckBox_CheckedChanged(object sender, EventArgs e)
+        {
+            if (_suppressStartupPrompt) return;
+            bool enableStartup = startupCheckBox.Checked;
+            if (enableStartup)
+            {
+                HandleEnableStartupRequest();
+            }
+            else
+            {
+                HandleDisableStartupRequest();
+            }
+        }
+
+        private void SyncStartupCheckBox()
+        {
+            SetStartupCheckboxSilently(StartupShortcutExists());
+        }
+
+        private void SetStartupCheckboxSilently(bool isChecked)
+        {
+            _suppressStartupPrompt = true;
+            startupCheckBox.Checked = isChecked;
+            _suppressStartupPrompt = false;
+        }
+
+        private void HandleEnableStartupRequest()
+        {
+            var result = MessageBox.Show(
+                "Enabling this option will launch Shutdown Server automatically when Windows starts. Click OK to save this change or Cancel to keep the current behavior.",
+                "Launch On Startup",
+                MessageBoxButtons.OKCancel,
+                MessageBoxIcon.Information
+            );
+            if (result != DialogResult.OK)
+            {
+                SetStartupCheckboxSilently(false);
+                return;
+            }
+
+            try
+            {
+                CreateStartupShortcut();
+                MessageBox.Show(
+                    "A shortcut was stored inside the Windows startup folder (shell:startup). Shutdown Server will now launch together with Windows.",
+                    "Startup Enabled",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information
+                );
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    "Could not create the startup shortcut: " + ex.Message,
+                    "Startup Change Failed",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error
+                );
+                SetStartupCheckboxSilently(false);
+            }
+        }
+
+        private void HandleDisableStartupRequest()
+        {
+            var result = MessageBox.Show(
+                "This will stop Shutdown Server from launching when Windows starts. Are you sure?",
+                "Disable Startup Launch",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Warning,
+                MessageBoxDefaultButton.Button2
+            );
+            if (result != DialogResult.Yes)
+            {
+                SetStartupCheckboxSilently(true);
+                return;
+            }
+
+            try
+            {
+                RemoveStartupShortcut();
+                MessageBox.Show(
+                    "The startup shortcut was removed. Shutdown Server will no longer start automatically with Windows.",
+                    "Startup Disabled",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information
+                );
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    "Could not remove the startup shortcut: " + ex.Message,
+                    "Startup Change Failed",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error
+                );
+                SetStartupCheckboxSilently(true);
+            }
+        }
+
+        private void CreateStartupShortcut()
+        {
+            var startupDirectory = Path.GetDirectoryName(StartupShortcutPath);
+            if (!string.IsNullOrEmpty(startupDirectory))
+            {
+                Directory.CreateDirectory(startupDirectory);
+            }
+
+            var shellType = Type.GetTypeFromProgID("WScript.Shell");
+            if (shellType == null)
+            {
+                throw new InvalidOperationException("WScript.Shell COM automation is not available.");
+            }
+
+            dynamic shell = Activator.CreateInstance(shellType)
+                ?? throw new InvalidOperationException("Failed to create WScript.Shell.");
+            dynamic shortcut = shell.CreateShortcut(StartupShortcutPath);
+            shortcut.Description = "Shutdown Server";
+            shortcut.TargetPath = Application.ExecutablePath;
+            var exeDirectory = Path.GetDirectoryName(Application.ExecutablePath);
+            shortcut.WorkingDirectory = !string.IsNullOrEmpty(exeDirectory)
+                ? exeDirectory
+                : Environment.CurrentDirectory;
+            shortcut.Save();
+        }
+
+        private void RemoveStartupShortcut()
+        {
+            if (File.Exists(StartupShortcutPath))
+            {
+                File.Delete(StartupShortcutPath);
+            }
+        }
+
+        private bool StartupShortcutExists() => File.Exists(StartupShortcutPath);
 
         private void MainForm_Shown(object sender, EventArgs e)
         {
