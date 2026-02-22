@@ -470,6 +470,9 @@ namespace ShutdownServerApp
                     fadeInTimer.Stop();
             };
             fadeInTimer.Start();
+
+            // Auto-start the server when the application opens
+            _ = ToggleServerAsync();
         }
 
         private void PinTextBox_KeyPress(object sender, KeyPressEventArgs e)
