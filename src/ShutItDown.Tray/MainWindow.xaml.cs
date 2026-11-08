@@ -1,10 +1,8 @@
 using System.ComponentModel;
-using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
-using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Threading;
@@ -44,7 +42,7 @@ public partial class MainWindow : Window
             _clock.IsEnabled = IsVisible;
             if (IsVisible) RefreshView();
         };
-        SourceInitialized += (_, _) => UseDarkTitleBar();
+        SourceInitialized += (_, _) => DarkTitleBar.Apply(this);
         RefreshView();
     }
 
@@ -94,6 +92,8 @@ public partial class MainWindow : Window
         NotifySwitch.IsChecked = _controller.NotifyOnRequest;
         TailscaleSwitch.IsChecked = _controller.PreferTailscale;
         ScreenPreviewSwitch.IsChecked = _controller.AllowScreenPreview;
+        VersionTitle.Text = $"Version {_controller.CurrentVersion}";
+        UpdateSwitch.IsChecked = _controller.CheckForUpdatesAtStartup;
         RefreshWatch();
         TailscaleSubtitle.Text = NetworkInfo.GetTailscaleAddress() is { } tailscale
             ? $"Found ({tailscale}). Paired phones with Tailscale can reach this PC from anywhere."
@@ -196,6 +196,30 @@ public partial class MainWindow : Window
     }
 
     private void CancelWatch_Click(object sender, RoutedEventArgs e) => Run(_controller.Watcher.Cancel);
+
+    private async void CheckUpdates_Click(object sender, RoutedEventArgs e)
+    {
+        CheckUpdatesButton.IsEnabled = false;
+        UpdateStatus.Text = "Checking…";
+        try
+        {
+            var update = await _controller.CheckForUpdatesAsync(manual: true);
+            UpdateStatus.Text = update is null
+                ? "You have the latest version."
+                : $"Version {update.Version} is available.";
+        }
+        catch (Exception)
+        {
+            UpdateStatus.Text = "Couldn't reach GitHub. Check your internet connection.";
+        }
+        finally
+        {
+            CheckUpdatesButton.IsEnabled = true;
+        }
+    }
+
+    private void UpdateSwitch_Click(object sender, RoutedEventArgs e) =>
+        Run(() => _controller.SetCheckForUpdates(UpdateSwitch.IsChecked == true));
 
     private void ScreenPreviewSwitch_Click(object sender, RoutedEventArgs e) =>
         Run(() => _controller.SetAllowScreenPreview(ScreenPreviewSwitch.IsChecked == true));
@@ -476,21 +500,4 @@ public partial class MainWindow : Window
         base.OnClosing(e);
     }
 
-    // Windows 11: dark title bar in the same color as the window, so it looks like one surface.
-    private void UseDarkTitleBar()
-    {
-        var hwnd = new WindowInteropHelper(this).Handle;
-        var on = 1;
-        DwmSetWindowAttribute(hwnd, DwmUseImmersiveDarkMode, ref on, sizeof(int));
-
-        var bg = (Color)FindResource("BgColor");
-        var colorRef = bg.R | (bg.G << 8) | (bg.B << 16);
-        DwmSetWindowAttribute(hwnd, DwmCaptionColor, ref colorRef, sizeof(int));
-    }
-
-    private const int DwmUseImmersiveDarkMode = 20;
-    private const int DwmCaptionColor = 35;
-
-    [DllImport("dwmapi.dll")]
-    private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attribute, ref int value, int size);
 }

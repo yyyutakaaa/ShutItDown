@@ -226,6 +226,36 @@
                         </Grid>
                     </Border>
 
+                    <TextBlock Style="{StaticResource SectionLabel}" Text="UPDATES" />
+                    <Border Style="{StaticResource Card}" Padding="0">
+                        <StackPanel>
+                            <Grid Style="{StaticResource Row}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Margin="0,0,14,0" VerticalAlignment="Center">
+                                    <TextBlock x:Name="VersionTitle" Style="{StaticResource Title}" />
+                                    <TextBlock x:Name="UpdateStatus" Style="{StaticResource Subtitle}" Text="New versions come from GitHub." />
+                                </StackPanel>
+                                <Button x:Name="CheckUpdatesButton" Grid.Column="1" Style="{StaticResource SecondaryButton}" Content="Check now"
+                                        VerticalAlignment="Center" Click="CheckUpdates_Click" />
+                            </Grid>
+                            <Border Style="{StaticResource Divider}" />
+                            <Grid Style="{StaticResource Row}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Margin="0,0,14,0" VerticalAlignment="Center">
+                                    <TextBlock Style="{StaticResource Title}" Text="Check when the app starts" />
+                                    <TextBlock Style="{StaticResource Subtitle}" Text="Shows a notice when a new version is out." />
+                                </StackPanel>
+                                <CheckBox x:Name="UpdateSwitch" Grid.Column="1" Style="{StaticResource Switch}" Click="UpdateSwitch_Click" />
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
                     <TextBlock Style="{StaticResource SectionLabel}" Text="SHUTDOWN" />
                     <Border Style="{StaticResource Card}" Padding="0">
                         <StackPanel>

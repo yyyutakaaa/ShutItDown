@@ -1,9 +1,11 @@
+using System.Net.Http;
 using ShutItDown.Core.Monitoring;
 using ShutItDown.Core.Networking;
 using ShutItDown.Core.Pairing;
 using ShutItDown.Core.Power;
 using ShutItDown.Core.Security;
 using ShutItDown.Core.Settings;
+using ShutItDown.Core.Updates;
 using ShutItDown.Web;
 
 namespace ShutItDown.Tray;
@@ -54,6 +56,59 @@ public sealed class AppController : IAsyncDisposable
     public bool AllowScreenPreview => _settings.AllowScreenPreview;
 
     public void SetAllowScreenPreview(bool allow) => Update(s => s.AllowScreenPreview = allow);
+
+    // --- Updates -------------------------------------------------------------
+
+    /// <summary>The GitHub repository whose releases hold new versions.</summary>
+    public const string Repository = "yyyutakaaa/shutitdown";
+
+    private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromMinutes(10) };
+
+    public UpdateChecker Updates { get; } = new(Http, Repository);
+
+    public Version CurrentVersion { get; } = ReadVersion();
+
+    private static Version ReadVersion()
+    {
+#if DEBUG
+        // Debug builds only: SHUTDOWNSERVER_PRETEND_VERSION=2.0.0 makes the update screen show up for testing.
+        if (Version.TryParse(Environment.GetEnvironmentVariable("SHUTDOWNSERVER_PRETEND_VERSION"), out var pretend))
+            return UpdateChecker.Normalize(pretend);
+#endif
+        return UpdateChecker.Normalize(typeof(AppController).Assembly.GetName().Version ?? new Version(0, 0, 0));
+    }
+
+    public bool CheckForUpdatesAtStartup => _settings.CheckForUpdates;
+
+    /// <summary>A newer version was found and should be offered. May be raised on any thread.</summary>
+    public event EventHandler<UpdateInfo>? UpdateFound;
+
+    public void SetCheckForUpdates(bool check) => Update(s => s.CheckForUpdates = check);
+
+    /// <summary>True once, on the first start after an update. Remembers the current version.</summary>
+    public bool TakeJustUpdated()
+    {
+        var current = CurrentVersion.ToString();
+        var updated = _settings.LastRunVersion is { } last && last != current;
+        if (_settings.LastRunVersion != current)
+            Update(s => s.LastRunVersion = current);
+        return updated;
+    }
+
+    public void SkipVersion(Version version) => Update(s => s.SkippedVersion = version.ToString());
+
+    /// <summary>
+    /// Asks GitHub for a newer version and raises <see cref="UpdateFound"/> when there is one.
+    /// A skipped version is only offered again when <paramref name="manual"/> is true.
+    /// </summary>
+    public async Task<UpdateInfo?> CheckForUpdatesAsync(bool manual)
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+        var update = await Updates.CheckAsync(CurrentVersion, timeout.Token);
+        if (update is not null && (manual || _settings.SkippedVersion != update.Version.ToString()))
+            UpdateFound?.Invoke(this, update);
+        return update;
+    }
 
 
     /// <summary>Something the UI shows has changed. May be raised on a background thread.</summary>

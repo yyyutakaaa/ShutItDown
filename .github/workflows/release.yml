@@ -1,0 +1,78 @@
+# Publishes a new version that the app offers as an update.
+#
+# Two ways to start it:
+#   - push a tag:      git tag v3.1.0 && git push origin v3.1.0
+#   - or in GitHub:    Actions -> Release -> Run workflow -> enter 3.1.0
+#
+# It runs the tests, builds the installer and creates a GitHub release with
+# ShutdownServer-Setup.exe and its SHA-256 checksum. Running apps find it on their next start.
+
+name: Release
+
+on:
+  push:
+    tags: ["v*.*.*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version number, like 3.1.0"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Work out the version
+      id: version
+      shell: pwsh
+      run: |
+        $v = if ("${{ github.event_name }}" -eq "workflow_dispatch") { "${{ inputs.version }}" } else { "${{ github.ref_name }}" }
+        $v = $v.Trim().TrimStart("v", "V")
+        if ($v -notmatch '^\d+\.\d+\.\d+$') { throw "The version must look like 3.1.0, got '$v'." }
+        "number=$v" >> $env:GITHUB_OUTPUT
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 9.0.x
+
+    - name: Test
+      run: dotnet test -c Release
+
+    - name: Publish the app
+      run: dotnet publish src/ShutItDown.Tray -c Release -r win-x64 --self-contained true -p:Version=${{ steps.version.outputs.number }} -o publish
+
+    - name: Install Inno Setup
+      run: choco install innosetup --no-progress -y
+
+    - name: Build the installer
+      shell: pwsh
+      run: |
+        & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" "/DMyAppVersion=${{ steps.version.outputs.number }}" installer\ShutdownServerApp.iss
+        if ($LASTEXITCODE -ne 0) { throw "Inno Setup failed." }
+
+    - name: Write the checksum
+      shell: pwsh
+      run: |
+        $file = "installer/output/ShutdownServer-Setup.exe"
+        $hash = (Get-FileHash $file -Algorithm SHA256).Hash.ToLower()
+        Set-Content -Path "$file.sha256" -Value "$hash  ShutdownServer-Setup.exe" -NoNewline -Encoding ascii
+
+    - name: Create the GitHub release
+      shell: pwsh
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        $v = "${{ steps.version.outputs.number }}"
+        gh release create "v$v" `
+          installer/output/ShutdownServer-Setup.exe `
+          installer/output/ShutdownServer-Setup.exe.sha256 `
+          --title "Shutdown Server $v" `
+          --generate-notes `
+          --target "${{ github.sha }}"

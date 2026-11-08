@@ -33,6 +33,15 @@ public sealed class AppSettings
     /// <summary>Paired phones may see a screenshot of this PC.</summary>
     public bool AllowScreenPreview { get; set; } = true;
 
+    /// <summary>Look for a new version on GitHub when the app starts.</summary>
+    public bool CheckForUpdates { get; set; } = true;
+
+    /// <summary>A version the user chose to skip, like "3.1.0". It isn't offered again; later versions are.</summary>
+    public string? SkippedVersion { get; set; }
+
+    /// <summary>The version that ran last time, to say "updated to ..." once after an update.</summary>
+    public string? LastRunVersion { get; set; }
+
     /// <summary>The user closed the "turn on the server here" hint.</summary>
     public bool ServerHintDismissed { get; set; }
 

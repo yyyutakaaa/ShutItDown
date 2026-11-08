@@ -4,7 +4,10 @@
 ; Then: iscc installer\ShutdownServerApp.iss
 
 #define MyAppName "Shutdown Server"
-#define MyAppVersion "3.0.0"
+; The release workflow passes the version: iscc /DMyAppVersion=3.1.0 ...
+#ifndef MyAppVersion
+  #define MyAppVersion "3.0.0"
+#endif
 #define MyAppPublisher "yyyutakaaa"
 #define MyAppURL "https://github.com/yyyutakaaa/ShutItDown"
 #define MyAppExeName "ShutdownServer.exe"
@@ -16,6 +19,7 @@
 AppId={{7C908E58-0523-4B3D-BDEA-0B85C4F21E05}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
+VersionInfoVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
 AppPublisherURL={#MyAppURL}
 AppSupportURL={#MyAppURL}
@@ -60,3 +64,5 @@ Type: files; Name: "{userstartup}\Shutdown Server.lnk"
 
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "Start {#MyAppName}"; Flags: nowait postinstall skipifsilent
+; Updates from inside the app run silently: start the new version again afterwards.
+Filename: "{app}\{#MyAppExeName}"; Parameters: "--minimized"; Flags: nowait; Check: WizardSilent

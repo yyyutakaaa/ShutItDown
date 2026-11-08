@@ -66,6 +66,25 @@ See [installer/README.md](installer/README.md) to build `ShutdownServer-Setup.ex
 
 ---
 
+## Releasing a new version
+
+The app checks GitHub for a newer release every time it starts and offers it in its own update window ("Update now", "Later", "Skip this version"). It downloads the installer, checks its SHA-256, installs quietly and starts again. Settings and paired phones stay.
+
+To publish a version, either:
+
+```
+git tag v3.1.0
+git push origin v3.1.0
+```
+
+or open **Actions → Release → Run workflow** on GitHub and enter `3.1.0`.
+
+The [Release workflow](.github/workflows/release.yml) runs the tests, builds the installer with that version number and creates the GitHub release with `ShutdownServer-Setup.exe` and `ShutdownServer-Setup.exe.sha256`. Release notes are generated from the commits and shown in the update window.
+
+Versions 2.x don't have the updater, so they need to install 3.x once by hand.
+
+---
+
 ## Security
 
 - The server listens on port 5050 (changeable) on all network adapters. Windows asks once whether to allow it through the firewall: allow it for **private** networks only.

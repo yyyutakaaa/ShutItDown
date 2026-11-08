@@ -1,7 +1,9 @@
+using System.Diagnostics;
 using System.Windows;
 using ShutItDown.Core.Monitoring;
 using ShutItDown.Core.Power;
 using ShutItDown.Core.Settings;
+using ShutItDown.Core.Updates;
 using ShutItDown.Web;
 using Forms = System.Windows.Forms;
 
@@ -56,6 +58,7 @@ public sealed class TrayApplication : IDisposable
         _controller.WatchTriggered += (_, state) => _window.Dispatcher.BeginInvoke(() =>
             _trayIcon.ShowBalloonTip(15_000, "Done, shutting down soon",
                 $"The PC was set to shut down {state.Describe()}. Click here to cancel.", Forms.ToolTipIcon.Warning));
+        _controller.UpdateFound += (_, update) => _window.Dispatcher.BeginInvoke(() => ShowUpdate(update));
         _trayIcon.BalloonTipClicked += (_, _) => ShowWindow();
         UpdateTray();
 
@@ -63,6 +66,53 @@ public sealed class TrayApplication : IDisposable
             ShowWindow();
 
         _ = StartServerOnLaunchAsync();
+        _ = CheckForUpdatesOnLaunchAsync();
+
+        if (_controller.TakeJustUpdated())
+            _trayIcon.ShowBalloonTip(5000, "Shutdown Server updated",
+                $"You now have version {_controller.CurrentVersion}.", Forms.ToolTipIcon.Info);
+    }
+
+    private UpdateWindow? _updateWindow;
+
+    private async Task CheckForUpdatesOnLaunchAsync()
+    {
+        if (!_controller.CheckForUpdatesAtStartup) return;
+
+        // Give Windows (and the network) a moment after sign-in.
+        await Task.Delay(TimeSpan.FromSeconds(8));
+        try
+        {
+            await _controller.CheckForUpdatesAsync(manual: false);
+        }
+        catch
+        {
+            // Offline or GitHub unreachable: try again next start.
+        }
+    }
+
+    private void ShowUpdate(UpdateInfo update)
+    {
+        if (_exiting) return;
+        if (_updateWindow is { IsVisible: true })
+        {
+            _updateWindow.Activate();
+            return;
+        }
+
+        _updateWindow = new UpdateWindow(_controller, update, InstallAndExitAsync);
+        _updateWindow.Show();
+        _updateWindow.Activate();
+    }
+
+    /// <summary>Starts the installer quietly and closes the app; the installer starts the new version.</summary>
+    private async Task InstallAndExitAsync(string installerPath)
+    {
+        Process.Start(new ProcessStartInfo(installerPath, "/SILENT /SUPPRESSMSGBOXES /NORESTART /CLOSEAPPLICATIONS")
+        {
+            UseShellExecute = true,
+        });
+        await ExitAsync();
     }
 
     private async Task StartServerOnLaunchAsync()
