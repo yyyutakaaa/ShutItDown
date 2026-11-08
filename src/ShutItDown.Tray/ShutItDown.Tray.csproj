@@ -1,0 +1,39 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net9.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- WPF for the window, WinForms only for the tray icon (WPF has none). -->
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <StartupObject>ShutItDown.Tray.Program</StartupObject>
+    <AssemblyName>ShutdownServer</AssemblyName>
+    <RootNamespace>ShutItDown.Tray</RootNamespace>
+    <ApplicationIcon>Assets\ShutdownServer.ico</ApplicationIcon>
+    <Version>3.0.0</Version>
+    <Product>Shutdown Server</Product>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Avoid clashes between WPF and WinForms types (Application, MessageBox, ...). -->
+    <Using Remove="System.Windows.Forms" />
+    <Using Remove="System.Drawing" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ShutItDown.Core\ShutItDown.Core.csproj" />
+    <ProjectReference Include="..\ShutItDown.Web\ShutItDown.Web.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="QRCoder" Version="1.8.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\logo.png" />
+    <Resource Include="Assets\ShutdownServer.ico" />
+  </ItemGroup>
+
+</Project>

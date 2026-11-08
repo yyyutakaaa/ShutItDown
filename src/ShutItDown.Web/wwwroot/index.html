@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#121212">
+  <!-- Home screen shortcut: opens full screen, with its own name and icon. -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="Shutdown">
+  <meta name="application-name" content="Shutdown">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="icon" sizes="192x192" href="icon-192.png">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <title>Shutdown</title>
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <main class="stack">
+    <header class="top">
+      <p class="eyebrow">Shutdown Server</p>
+      <h1 id="machine">Your PC</h1>
+      <p id="presence" class="presence"></p>
+    </header>
+
+    <!-- Shown to paired phones until the page runs from the home screen -->
+    <section id="install" class="card install" hidden>
+      <p class="install-title">Put Shutdown on your home screen</p>
+      <p class="install-sub">Then it's one tap from now on, wherever you are.</p>
+      <div class="install-video" aria-hidden="true"></div>
+      <ol class="install-steps"></ol>
+      <p class="install-note"></p>
+      <button id="install-done" type="button" class="link">I've done it</button>
+    </section>
+
+    <section id="pending" class="card pending" hidden>
+      <p>Shutting down in</p>
+      <p id="countdown" class="countdown">--:--</p>
+      <button id="cancel" type="button" class="secondary">Cancel shutdown</button>
+    </section>
+
+    <!-- Not paired and no PIN to fall back on -->
+    <section id="unpaired" class="card unpaired" hidden>
+      <p class="card-title">This phone isn't paired yet</p>
+      <ol>
+        <li>Open Shutdown Server on your PC.</li>
+        <li>Scan the QR code with this phone's camera.</li>
+      </ol>
+      <p class="muted">You only need to do this once.</p>
+    </section>
+
+    <!-- Live view: paired phones only -->
+    <section id="live" class="card" hidden>
+      <div class="stats">
+        <div><span class="label">CPU</span><b id="cpu">–</b></div>
+        <div><span class="label">Memory</span><b id="memory">–</b></div>
+        <div><span class="label">Download</span><b id="down">–</b></div>
+        <div><span class="label">On for</span><b id="uptime">–</b></div>
+      </div>
+
+      <div id="unsaved-live" class="warn" hidden></div>
+
+      <div id="screen-box" class="screen-box" hidden>
+        <img id="screen" alt="Screenshot of the PC" hidden>
+        <button id="screen-btn" type="button" class="secondary">Show screen</button>
+      </div>
+
+      <details class="apps">
+        <summary id="apps-summary">Open apps</summary>
+        <ul id="apps-list"></ul>
+      </details>
+    </section>
+
+    <form id="form" class="card power-card" autocomplete="off" hidden>
+      <label id="pin-row" class="pin" hidden>
+        <span>PIN</span>
+        <input id="pin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="8" placeholder="••••">
+      </label>
+
+      <fieldset class="seg">
+        <legend>When</legend>
+        <label><input type="radio" name="delay" value="0" checked><span>now</span></label>
+        <label><input type="radio" name="delay" value="15"><span>15m</span></label>
+        <label><input type="radio" name="delay" value="30"><span>30m</span></label>
+        <label><input type="radio" name="delay" value="60"><span>1h</span></label>
+      </fieldset>
+
+      <button id="power" type="submit" class="power" aria-label="Shut down">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v9M6.3 6.3a8 8 0 1 0 11.4 0" /></svg>
+      </button>
+      <p id="hint" class="hint">Tap to shut down</p>
+
+      <!-- Asked before shutting down when windows look like they hold unsaved work -->
+      <div id="unsaved-confirm" class="confirm" hidden>
+        <p class="card-title">Unsaved work?</p>
+        <ul id="unsaved-confirm-list"></ul>
+        <p class="muted">Shutting down closes these without saving.</p>
+        <div class="row-buttons">
+          <button id="unsaved-cancel" type="button" class="secondary">Keep it on</button>
+          <button id="unsaved-go" type="button" class="danger">Shut down anyway</button>
+        </div>
+      </div>
+    </form>
+
+    <!-- Shut down once the PC is done: paired phones only -->
+    <section id="watch" class="card" hidden>
+      <p class="card-title">Shut down when it's done</p>
+      <div id="watch-setup">
+        <fieldset class="seg">
+          <legend>When</legend>
+          <label><input type="radio" name="watch-kind" value="idle" checked><span>idle</span></label>
+          <label><input type="radio" name="watch-kind" value="network"><span>downloads</span></label>
+          <label><input type="radio" name="watch-kind" value="app"><span>app closes</span></label>
+        </fieldset>
+        <p id="watch-explain" class="muted"></p>
+        <fieldset id="watch-minutes" class="seg">
+          <legend>For</legend>
+          <label><input type="radio" name="watch-min" value="5"><span>5m</span></label>
+          <label><input type="radio" name="watch-min" value="10" checked><span>10m</span></label>
+          <label><input type="radio" name="watch-min" value="30"><span>30m</span></label>
+        </fieldset>
+        <label id="watch-app-row" class="pick" hidden>
+          <span>App</span>
+          <select id="watch-app"></select>
+        </label>
+        <button id="watch-start" type="button" class="primary">Start waiting</button>
+      </div>
+      <div id="watch-active" hidden>
+        <p id="watch-desc" class="watch-desc"></p>
+        <p id="watch-progress" class="muted mono"></p>
+        <button id="watch-stop" type="button" class="secondary">Stop waiting</button>
+      </div>
+    </section>
+
+    <!-- iPhone Shortcuts recipes: paired phones only -->
+    <section id="shortcuts" class="card" hidden>
+      <p class="card-title">Automations</p>
+
+      <details class="recipe">
+        <summary>Shut down when I leave home</summary>
+        <p class="muted">Your iPhone turns the PC off when you leave, but only if nobody used it in the last 10 minutes.</p>
+        <ol>
+          <li>Open the <b>Shortcuts</b> app, go to <b>Automation</b> and tap <b>+</b>.</li>
+          <li>Choose <b>Leave</b>, pick your home, choose <b>Run Immediately</b>, then <b>Next</b> and <b>New Blank Automation</b>.</li>
+          <li>Add the action <b>Get Contents of URL</b> and paste this URL:
+            <span class="copy-line"><code id="r1-url"></code><button type="button" class="copy" data-copy-from="r1-url">Copy</button></span></li>
+          <li>Tap the arrow to show more. Set <b>Method</b> to <b>POST</b>.</li>
+          <li>Under <b>Headers</b>, add one. Key:
+            <span class="copy-line"><code>X-Device-Token</code><button type="button" class="copy" data-copy="X-Device-Token">Copy</button></span>
+            Value (this phone's key, keep it private):
+            <span class="copy-line"><code id="r1-token" class="secret">••••••••</code><button type="button" class="copy" data-copy-from="r1-token" data-secret>Copy</button></span></li>
+          <li>Set <b>Request Body</b> to <b>JSON</b> and add two <b>Number</b> fields: <code>delayMinutes</code> = <code>0</code> and <code>onlyIfIdleMinutes</code> = <code>10</code>.</li>
+        </ol>
+      </details>
+    </section>
+
+    <p id="message" class="message" role="status" aria-live="polite"></p>
+  </main>
+  <script src="install-guide.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
